@@ -1,0 +1,35 @@
+{
+  "cli_distribution": "OFFICIAL_RELEASE_HOST",
+  "core_source_publication": false,
+  "explicit_exclusions": [
+    "runtime source tree",
+    "private signing authority",
+    "commercial entitlement issuer",
+    "operator entitlement tooling",
+    "private keys",
+    "real customer kits",
+    "internal GTM/customer data",
+    "internal governance evidence",
+    "RBEK Document product content"
+  ],
+  "files": [
+    "README.md",
+    "INSTALL.md",
+    "QUICKSTART.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "examples/governed-execution/README.md"
+  ],
+  "github_mutation_executed": false,
+  "license_status": "UNDECIDED",
+  "milestone": "RBEK-GITHUB-001B",
+  "next_milestone": "RBEK-GITHUB-001C_PUBLICATION_PRECHECK_AND_FIRST_PUSH",
+  "official_release_host": "https://releases.rbekplatform.com",
+  "program": "RBEK-GITHUB-001",
+  "public_stable_version": "0.2.0",
+  "repository": "rbekplatform/rbek",
+  "repository_role": "DEVELOPER_ENTRYPOINT",
+  "schema": "rbek.github.developer-cli-public-repository.v1",
+  "visibility": "PUBLIC"
+}
