@@ -1,10 +1,62 @@
 # Real Governed Agent Demo
 
-This example shows an AI agent requesting a **real external action** through the
-RBEK governed execution boundary.
+This example gives you two ways to see RBEK govern agent execution.
+
+## Fastest proof — no API key
+
+If RBEK is not installed yet:
+
+```bash
+curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
+```
+
+Then run:
+
+```bash
+./demo.sh
+```
+
+The default mode is offline and zero-key. It uses the real RBEK policy and
+evidence path to prove:
 
 ```text
-AI agent
+unauthorized action → DENY → not executed
+authorized action   → ALLOW → governed dry-run → AUTHORIZED
+```
+
+At the end, `evidence/summary.json` shows exactly what RBEK decided and what did
+or did not execute.
+
+No OpenAI key is required. No external network action is performed by the demo.
+
+## Browser-only — GitHub Codespaces
+
+Open the repository in Codespaces:
+
+https://codespaces.new/rbekplatform/rbek?quickstart=1
+
+The environment installs RBEK and prepares the demo automatically.
+
+Run:
+
+```bash
+cd examples/real-governed-agent
+./demo.sh
+```
+
+## Live AI + Internet proof
+
+To execute the real agent and external action:
+
+```bash
+export OPENAI_API_KEY="your-key"
+./demo.sh --live
+```
+
+Live mode performs:
+
+```text
+OpenAI agent
    ↓
 requests weather.current
    ↓
@@ -14,53 +66,11 @@ controlled external execution
    ↓
 Open-Meteo
    ↓
-execution evidence
+receipt + certification
 ```
 
-The agent does not call the weather API directly. The tool binding delegates
-the action to RBEK, which owns the governed external execution path.
-
-## Requirements
-
-- Python 3
-- RBEK CLI 0.2.0
-- network access
-- an OpenAI API key supplied by you through `OPENAI_API_KEY`
-
-No credential is stored in this repository.
-
-## 1. Install RBEK
-
-```bash
-curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
-rbek-cli --version
-```
-
-Expected:
-
-```text
-RBEK 0.2.0
-```
-
-## 2. Prepare the demo
-
-```bash
-./setup.sh
-```
-
-## 3. Supply your OpenAI credential
-
-```bash
-export OPENAI_API_KEY="your-key"
-```
-
-Do not commit credentials to Git.
-
-## 4. Run
-
-```bash
-./run.sh
-```
+The agent does not call the weather API directly. The tool binding delegates the
+action to RBEK, which owns the governed external execution path.
 
 The demo uses `gpt-5-mini` by default. You can override the model:
 
@@ -70,19 +80,10 @@ export RBEK_DEMO_MODEL="gpt-5-mini"
 
 ## What this proves
 
-The interesting part of the demo is the execution boundary:
+Docker controls where software runs.
 
-```text
-model decides to use a tool
-          ↓
-tool requests an action
-          ↓
-RBEK governs execution
-          ↓
-external API executes only through RBEK
-```
-
-RBEK remains independent of the agent framework and the external API.
+RBEK controls whether an action may run, how it is governed, and what evidence
+proves the result.
 
 ## Security
 
@@ -92,7 +93,6 @@ This public example contains:
 - no private signing material;
 - no commercial entitlement issuer;
 - no customer data;
-- no embedded API credentials;
-- no RBEK Document product content.
+- no embedded API credentials.
 
 The OpenAI credential remains in the caller's environment.

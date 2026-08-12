@@ -2,8 +2,49 @@
 
 **Governed execution for AI agents, workflows and software.**
 
+[![Deterministic Execution Verified](https://github.com/rbekplatform/rbek/actions/workflows/real-governed-agent.yml/badge.svg)](https://github.com/rbekplatform/rbek/actions/workflows/real-governed-agent.yml)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/rbekplatform/rbek?quickstart=1)
+
 RBEK provides a governed execution boundary between AI agents or automated
 workflows and the external actions they want to perform.
+
+## See RBEK in seconds
+
+No API key is required for the default proof.
+
+```bash
+curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash && curl -fsSL https://raw.githubusercontent.com/rbekplatform/rbek/main/examples/real-governed-agent/demo.sh | bash
+```
+
+The demo proves, using the real RBEK policy and evidence path:
+
+```text
+unauthorized action
+      ↓
+     DENY
+      ↓
+external execution = NO
+
+authorized action
+      ↓
+     ALLOW
+      ↓
+dry-run = PASS
+gate = AUTHORIZED
+      ↓
+evidence
+```
+
+Prefer a browser-only environment? Open the repository in GitHub Codespaces
+using the button above, then run:
+
+```bash
+cd examples/real-governed-agent
+./demo.sh
+```
+
+The public CI executes the same offline proof twice and verifies deterministic
+evidence identity.
 
 ## Why RBEK?
 
@@ -67,35 +108,34 @@ local project and execute it through the RBEK CLI.
 
 See [QUICKSTART.md](QUICKSTART.md) for the complete first-run walkthrough.
 
-## See RBEK govern a real agent action
+## Run the live AI + Internet version
 
-The repository also includes a real governed-agent demo:
-
-```text
-AI agent
-   ↓
-requests weather.current
-   ↓
-RBEK policy admission
-   ↓
-controlled external execution
-   ↓
-Open-Meteo
-   ↓
-execution evidence
-```
-
-Run it from:
+After the zero-key proof, you can run the real agent path:
 
 ```bash
 cd examples/real-governed-agent
-./setup.sh
 export OPENAI_API_KEY="your-key"
-./run.sh
+./demo.sh --live
 ```
 
-This example performs a real model inference and a real external API action
-through the RBEK governed execution boundary.
+In live mode:
+
+```text
+OpenAI agent
+     ↓
+weather.current
+     ↓
+RBEK policy admission
+     ↓
+controlled external execution
+     ↓
+Open-Meteo
+     ↓
+receipt + certification
+```
+
+The agent does not call Open-Meteo directly. The external action goes through
+the RBEK governed execution boundary.
 
 See
 [examples/real-governed-agent/README.md](examples/real-governed-agent/README.md)
