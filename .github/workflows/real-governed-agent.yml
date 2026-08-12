@@ -1,0 +1,128 @@
+name: Governed Agent Deterministic Proof
+
+on:
+  push:
+    paths:
+      - "examples/real-governed-agent/**"
+      - ".github/workflows/real-governed-agent.yml"
+  pull_request:
+    paths:
+      - "examples/real-governed-agent/**"
+      - ".github/workflows/real-governed-agent.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-proof:
+    name: Deterministic Execution Verified
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install RBEK CLI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
+          rbek-cli --version
+          test "$(rbek-cli --version)" = "RBEK 0.2.0"
+
+      - name: Run offline governed demo twice
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          DEMO="$GITHUB_WORKSPACE/examples/real-governed-agent/demo.sh"
+          RUN1="$RUNNER_TEMP/rbek-demo-run-1"
+          RUN2="$RUNNER_TEMP/rbek-demo-run-2"
+
+          mkdir -p "$RUN1" "$RUN2"
+
+          (
+            cd "$RUN1"
+            "$DEMO"
+          ) | tee "$RUN1/output.log"
+
+          (
+            cd "$RUN2"
+            "$DEMO"
+          ) | tee "$RUN2/output.log"
+
+          grep -Fq "RBEK_ZERO_FRICTION_DEMO=PASS" "$RUN1/output.log"
+          grep -Fq "RBEK_ZERO_FRICTION_DEMO=PASS" "$RUN2/output.log"
+
+          test -f "$RUN1/evidence/summary.json"
+          test -f "$RUN2/evidence/summary.json"
+
+      - name: Verify deterministic evidence identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          RUN1="$RUNNER_TEMP/rbek-demo-run-1"
+          RUN2="$RUNNER_TEMP/rbek-demo-run-2"
+
+          python - "$RUN1/evidence/summary.json" "$RUN2/evidence/summary.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          a = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          b = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+
+          if a != b:
+              raise SystemExit("DETERMINISTIC_SUMMARY_MISMATCH")
+
+          assert a["mode"] == "offline"
+          assert a["network_execution_performed"] is False
+
+          assert a["unauthorized_action"]["decision"] == "DENY"
+          assert a["unauthorized_action"]["external_execution_performed"] is False
+
+          assert a["authorized_action"]["decision"] == "ALLOW"
+          assert a["authorized_action"]["dry_run"] == "PASS"
+          assert a["authorized_action"]["gate"] == "AUTHORIZED"
+
+          assert a["rbek_policy_enforcement"] == "REAL"
+          assert a["rbek_evidence_generation"] == "REAL"
+
+          print("DETERMINISTIC_EXECUTION_VERIFIED=PASS")
+          PY
+
+      - name: Prepare public evidence artifact
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          RUN1="$RUNNER_TEMP/rbek-demo-run-1"
+
+          mkdir -p "$GITHUB_WORKSPACE/ci-evidence"
+          cp -a "$RUN1/evidence/." "$GITHUB_WORKSPACE/ci-evidence/"
+
+          {
+            echo "RBEK_GITHUB_ACTIONS_PROOF=PASS"
+            echo "MODE=offline"
+            echo "API_KEY_REQUIRED=FALSE"
+            echo "NETWORK_EXECUTION_PERFORMED=FALSE"
+            echo "POLICY_ENFORCEMENT=REAL"
+            echo "EVIDENCE_GENERATION=REAL"
+            echo "DETERMINISTIC_SUMMARY=PASS"
+          } > "$GITHUB_WORKSPACE/ci-evidence/CI-PROOF.txt"
+
+      - name: Upload deterministic evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: rbek-governed-agent-evidence
+          path: ci-evidence/
+          if-no-files-found: error
+          retention-days: 14
