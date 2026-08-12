@@ -1,0 +1,17 @@
+{
+  "name": "RBEK Developer",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "RBEK_DEMO_MODE": "offline"
+  },
+  "postCreateCommand": "bash -lc 'set -Eeuo pipefail; curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash; rbek-cli --version; cd examples/real-governed-agent; ./setup.sh'",
+  "postStartCommand": "bash -lc 'cd examples/real-governed-agent && ./demo.sh --help'",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
