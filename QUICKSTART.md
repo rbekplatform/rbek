@@ -1,5 +1,7 @@
 # RBEK Developer Quickstart
 
+This is the shortest path from a clean machine to a running local RBEK project.
+
 ## 1. Install
 
 ```bash
@@ -12,15 +14,51 @@ curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
 rbek-cli --version
 ```
 
-Expected:
+Expected current stable:
 
 ```text
 RBEK 0.2.0
 ```
 
-## 3. Understand the execution model
+## 3. Check local readiness
 
-RBEK sits between application logic and real external execution:
+```bash
+rbek-cli doctor
+```
+
+For a strict readiness check:
+
+```bash
+rbek-cli doctor --strict
+```
+
+## 4. Create a minimal project
+
+```bash
+rbek-cli init ./rbek-demo
+```
+
+## 5. Run it through RBEK
+
+```bash
+rbek-cli run ./rbek-demo
+```
+
+That is the first complete Developer flow:
+
+```text
+install
+  ↓
+doctor
+  ↓
+init
+  ↓
+run
+```
+
+## What happens conceptually?
+
+RBEK is designed to sit between application logic and real execution:
 
 ```text
 AI agent / workflow
@@ -37,18 +75,13 @@ AI agent / workflow
             evidence
 ```
 
-## 4. Start with one real action
+The first local project demonstrates the CLI workflow without requiring you to
+change agent frameworks or model providers.
 
-For evaluation, choose one agent or workflow action that calls an external
-tool or API.
+## Next step
 
-The goal is to make that action explicit, governed and observable through
-RBEK rather than leaving execution embedded directly inside application logic.
+After the local flow works, move one real external action behind RBEK and make
+its execution explicit, governed and observable.
 
-## 5. Production and commercial use
-
-Developer is the entry point.
-
-When an organization needs Team or Enterprise commercial operation, RBEK adds
-organization-level entitlement controls, and Enterprise can additionally bind
-authorization to a deployment.
+Developer is the public entry point. Team and Enterprise add separate
+commercial organization and deployment entitlement controls.

@@ -1,6 +1,7 @@
 {
   "cli_distribution": "OFFICIAL_RELEASE_HOST",
   "core_source_publication": false,
+  "developer_quickstart": "5_MINUTE_EXECUTABLE_FLOW",
   "explicit_exclusions": [
     "runtime source tree",
     "private signing authority",
@@ -13,18 +14,19 @@
     "RBEK Document product content"
   ],
   "files": [
-    "README.md",
-    "INSTALL.md",
-    "QUICKSTART.md",
-    "SECURITY.md",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
+    "INSTALL.md",
+    "QUICKSTART.md",
+    "README.md",
+    "SECURITY.md",
+    "examples/5-minute-quickstart/run.sh",
     "examples/governed-execution/README.md"
   ],
-  "github_mutation_executed": false,
+  "github_mutation_executed": true,
   "license_status": "UNDECIDED",
-  "milestone": "RBEK-GITHUB-001B",
-  "next_milestone": "RBEK-GITHUB-001C_PUBLICATION_PRECHECK_AND_FIRST_PUSH",
+  "milestone": "RBEK-GITHUB-002B",
+  "next_milestone": "RBEK-GITHUB-002C_DEVELOPER_ADOPTION_CERTIFICATION",
   "official_release_host": "https://releases.rbekplatform.com",
   "program": "RBEK-GITHUB-001",
   "public_stable_version": "0.2.0",
