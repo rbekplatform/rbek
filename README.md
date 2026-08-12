@@ -67,6 +67,40 @@ local project and execute it through the RBEK CLI.
 
 See [QUICKSTART.md](QUICKSTART.md) for the complete first-run walkthrough.
 
+## See RBEK govern a real agent action
+
+The repository also includes a real governed-agent demo:
+
+```text
+AI agent
+   ↓
+requests weather.current
+   ↓
+RBEK policy admission
+   ↓
+controlled external execution
+   ↓
+Open-Meteo
+   ↓
+execution evidence
+```
+
+Run it from:
+
+```bash
+cd examples/real-governed-agent
+./setup.sh
+export OPENAI_API_KEY="your-key"
+./run.sh
+```
+
+This example performs a real model inference and a real external API action
+through the RBEK governed execution boundary.
+
+See
+[examples/real-governed-agent/README.md](examples/real-governed-agent/README.md)
+for details.
+
 ## Developer
 
 Developer is the public CLI entry point for local development, evaluation and

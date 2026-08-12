@@ -1,0 +1,19 @@
+{
+  "agent_sdk": "openai-agents",
+  "core_source_publication": false,
+  "credential_environment_variable": "OPENAI_API_KEY",
+  "credential_model": "CALLER_SUPPLIED_ENVIRONMENT",
+  "default_model": "gpt-5-mini",
+  "external_api": "api.open-meteo.com",
+  "github_mutation": false,
+  "milestone": "RBEK-GITHUB-003A.3",
+  "network_execution_during_packaging": false,
+  "next_action": "RBEK-GITHUB-003B_REAL_GOVERNED_AGENT_DEMO_PUBLICATION",
+  "package_role": "PUBLIC_REAL_GOVERNED_AGENT_DEMO",
+  "private_commercial_authority_publication": false,
+  "program": "RBEK-GITHUB-003",
+  "provider_execution_during_packaging": false,
+  "public_stable_version": "0.2.0",
+  "rbek_document_references": "NONE",
+  "schema": "rbek.github.real-governed-agent-demo.v1"
+}

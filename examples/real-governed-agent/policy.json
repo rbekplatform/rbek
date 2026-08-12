@@ -1,0 +1,12 @@
+{
+  "policy_version": 1,
+  "name": "ai-agent-external-tool-policy",
+  "effect": "ALLOW",
+  "allowed_providers": [
+    "http-json"
+  ],
+  "allowed_capabilities": [
+    "http.json"
+  ],
+  "require_registered_providers": true
+}

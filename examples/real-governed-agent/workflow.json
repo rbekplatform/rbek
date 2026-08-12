@@ -1,0 +1,11 @@
+{
+  "workflow_version": 1,
+  "name": "ai-agent-external-tool-workflow",
+  "steps": [
+    {
+      "id": "http-json-call",
+      "capability": "http.json",
+      "provider": "http-json"
+    }
+  ]
+}
