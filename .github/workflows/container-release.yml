@@ -1,0 +1,173 @@
+name: Publish RBEK Container to GHCR
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: rbekplatform/rbek
+  RBEK_VERSION: 0.2.0
+
+jobs:
+  publish:
+    name: Build, Publish and Attest RBEK Container
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    environment:
+      name: ghcr
+      url: https://github.com/orgs/rbekplatform/packages/container/package/rbek
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push official RBEK runtime image
+        id: push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          pull: true
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.RBEK_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable
+
+      - name: Record published image digest
+        shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -Eeuo pipefail
+
+          test -n "$IMAGE_DIGEST"
+          case "$IMAGE_DIGEST" in
+            sha256:*) ;;
+            *)
+              echo "INVALID_IMAGE_DIGEST=$IMAGE_DIGEST"
+              exit 1
+              ;;
+          esac
+
+          echo "GHCR_IMAGE=${REGISTRY}/${IMAGE_NAME}"
+          echo "GHCR_VERSION_TAG=${RBEK_VERSION}"
+          echo "GHCR_STABLE_TAG=stable"
+          echo "GHCR_IMAGE_DIGEST=$IMAGE_DIGEST"
+          echo "IMAGE_DIGEST_CONTRACT=PASS"
+
+      - name: Generate and publish build attestation
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Verify published version tag
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          docker pull \
+            "${REGISTRY}/${IMAGE_NAME}:${RBEK_VERSION}"
+
+          VERSION_OUTPUT="$(
+            docker run \
+              --rm \
+              "${REGISTRY}/${IMAGE_NAME}:${RBEK_VERSION}" \
+              --version
+          )"
+
+          echo "GHCR_VERSION_OUTPUT=$VERSION_OUTPUT"
+
+          test "$VERSION_OUTPUT" = "RBEK 0.2.0"
+
+          echo "GHCR_VERSION_TAG_RUNTIME=PASS"
+
+      - name: Verify published stable tag
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          docker pull \
+            "${REGISTRY}/${IMAGE_NAME}:stable"
+
+          STABLE_OUTPUT="$(
+            docker run \
+              --rm \
+              "${REGISTRY}/${IMAGE_NAME}:stable" \
+              --version
+          )"
+
+          echo "GHCR_STABLE_OUTPUT=$STABLE_OUTPUT"
+
+          test "$STABLE_OUTPUT" = "RBEK 0.2.0"
+
+          echo "GHCR_STABLE_TAG_RUNTIME=PASS"
+
+      - name: Verify immutable tag identity
+        shell: bash
+        env:
+          BUILD_DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -Eeuo pipefail
+
+          VERSION_DIGEST="$(
+            docker image inspect \
+              "${REGISTRY}/${IMAGE_NAME}:${RBEK_VERSION}" \
+              --format '{{ index .RepoDigests 0 }}' \
+              | sed 's/.*@//'
+          )"
+
+          STABLE_DIGEST="$(
+            docker image inspect \
+              "${REGISTRY}/${IMAGE_NAME}:stable" \
+              --format '{{ index .RepoDigests 0 }}' \
+              | sed 's/.*@//'
+          )"
+
+          echo "BUILD_DIGEST=$BUILD_DIGEST"
+          echo "VERSION_DIGEST=$VERSION_DIGEST"
+          echo "STABLE_DIGEST=$STABLE_DIGEST"
+
+          test "$VERSION_DIGEST" = "$BUILD_DIGEST"
+          test "$STABLE_DIGEST" = "$BUILD_DIGEST"
+
+          echo "GHCR_TAG_DIGEST_IDENTITY=PASS"
+
+      - name: Publication result
+        shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.push.outputs.digest }}
+          ATTESTATION_URL: ${{ steps.attest.outputs.attestation-url }}
+        run: |
+          set -Eeuo pipefail
+
+          echo "GHCR_PUBLICATION=PASS"
+          echo "GHCR_IMAGE=${REGISTRY}/${IMAGE_NAME}"
+          echo "GHCR_VERSION=${RBEK_VERSION}"
+          echo "GHCR_STABLE_TAG=stable"
+          echo "GHCR_LATEST_TAG_CREATED=FALSE"
+          echo "GHCR_IMAGE_DIGEST=$IMAGE_DIGEST"
+          echo "GHCR_ATTESTATION_URL=$ATTESTATION_URL"
+          echo "GHCR_ATTESTATION=PASS"
