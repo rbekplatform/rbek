@@ -15,6 +15,9 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends ca-certificates curl; \
     rm -rf /var/lib/apt/lists/*; \
+    test -x /usr/local/bin/python3.12; \
+    ln -sf /usr/local/bin/python3.12 /usr/bin/python3.12; \
+    test -x /usr/bin/python3.12; \
     curl -fsSL "$RBEK_INSTALLER_URL" -o /tmp/rbek-install.sh; \
     echo "$RBEK_INSTALLER_SHA256  /tmp/rbek-install.sh" | sha256sum -c -; \
     chmod 700 /tmp/rbek-install.sh; \
