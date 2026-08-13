@@ -5,46 +5,66 @@
 [![Deterministic Execution Verified](https://github.com/rbekplatform/rbek/actions/workflows/real-governed-agent.yml/badge.svg)](https://github.com/rbekplatform/rbek/actions/workflows/real-governed-agent.yml)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/rbekplatform/rbek?quickstart=1)
 
-RBEK provides a governed execution boundary between AI agents or automated
-workflows and the external actions they want to perform.
+RBEK separates what an agent **wants to do** from what it is **authorized to execute**.
 
-## See RBEK in seconds
-
-No API key or prior RBEK installation is required for the default proof. The demo installs and validates the public RBEK CLI automatically when needed.
+## See RBEK govern an action in 10 seconds
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/rbekplatform/rbek/main/examples/real-governed-agent/demo.sh | bash
 ```
 
-The demo proves, using the real RBEK policy and evidence path:
+**No API key. No prior RBEK installation. No configuration.**
+
+The demo installs and validates the public RBEK CLI when needed, then runs an
+offline governed proof:
 
 ```text
-unauthorized action
-      ↓
-     DENY
-      ↓
-external execution = NO
-
-authorized action
-      ↓
-     ALLOW
-      ↓
-dry-run = PASS
-gate = AUTHORIZED
-      ↓
-evidence
+Agent requests an action
+        |
+        +-- unauthorized -> DENY  -> executed: NO
+        |
+        +-- authorized   -> ALLOW -> governed dry-run -> AUTHORIZED
+                                                |
+                                                +-- evidence
 ```
 
-Prefer a browser-only environment? Open the repository in GitHub Codespaces
-using the button above, then run:
+What you see in the terminal:
+
+```text
+Unauthorized action ............ DENIED
+Denied action executed ......... NO
+Authorized action .............. ALLOWED
+Governed dry-run ............... PASS
+Gate authorization ............. AUTHORIZED
+RBEK policy enforcement ........ REAL
+RBEK evidence .................. REAL
+```
+
+The default proof performs **no external network action**. Policy enforcement
+and evidence generation are real RBEK behavior.
+
+The public GitHub Actions workflow executes the proof twice and verifies that
+the deterministic evidence summary is identical across both runs.
+
+### Prefer zero-install in the browser?
+
+Use **Open in GitHub Codespaces** above, then run:
 
 ```bash
 cd examples/real-governed-agent
 ./demo.sh
 ```
 
-The public CI executes the same offline proof twice and verifies deterministic
-evidence identity.
+### Want the real AI + Internet path?
+
+```bash
+cd examples/real-governed-agent
+export OPENAI_API_KEY="your-key"
+./demo.sh --live
+```
+
+Live mode performs real model inference and a real Open-Meteo external action
+through the RBEK governed execution boundary.
 
 ## Why RBEK?
 
