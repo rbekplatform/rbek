@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rbek"
+version = "0.2.0"
+description = "Official bootstrap CLI for RBEK governed execution."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "RBEK Platform" }
+]
+keywords = [
+  "ai-agents",
+  "ai-governance",
+  "execution-governance",
+  "policy-enforcement",
+  "workflow-automation"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+  "Topic :: Security"
+]
+
+[project.urls]
+Homepage = "https://rbekplatform.com"
+Repository = "https://github.com/rbekplatform/rbek"
+
+[project.scripts]
+rbek = "rbek_pypi.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
