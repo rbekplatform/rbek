@@ -10,10 +10,10 @@ workflows and the external actions they want to perform.
 
 ## See RBEK in seconds
 
-No API key is required for the default proof.
+No API key or prior RBEK installation is required for the default proof. The demo installs and validates the public RBEK CLI automatically when needed.
 
 ```bash
-curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash && curl -fsSL https://raw.githubusercontent.com/rbekplatform/rbek/main/examples/real-governed-agent/demo.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rbekplatform/rbek/main/examples/real-governed-agent/demo.sh | bash
 ```
 
 The demo proves, using the real RBEK policy and evidence path:

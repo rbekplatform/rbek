@@ -83,13 +83,35 @@ HELP
     echo "============================================================"
     echo
 
-    command -v "$CLI" >/dev/null 2>&1 || {
-        echo "[1/5] RBEK CLI .................................... FAILED"
-        echo
-        echo "Install RBEK first:"
-        echo "curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash"
-        return 20
-    }
+    if ! command -v "$CLI" >/dev/null 2>&1; then
+        echo "[1/5] RBEK CLI .................................... INSTALLING"
+
+        command -v curl >/dev/null 2>&1 || {
+            echo "DEMO_STATUS=BLOCKED"
+            echo "REASON=CURL_NOT_AVAILABLE_FOR_RBEK_INSTALL"
+            return 20
+        }
+
+        curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
+        hash -r
+
+        command -v "$CLI" >/dev/null 2>&1 || {
+            echo "DEMO_STATUS=BLOCKED"
+            echo "REASON=RBEK_INSTALL_DID_NOT_PROVIDE_CLI"
+            return 21
+        }
+    fi
+
+    local CLI_VERSION
+    CLI_VERSION="$("$CLI" --version)"
+
+    if [ "$CLI_VERSION" != "RBEK 0.2.0" ]; then
+        echo "DEMO_STATUS=BLOCKED"
+        echo "REASON=RBEK_CLI_VERSION_MISMATCH"
+        echo "EXPECTED=RBEK 0.2.0"
+        echo "ACTUAL=$CLI_VERSION"
+        return 22
+    fi
 
     echo "[1/5] RBEK CLI .................................... OK"
 
