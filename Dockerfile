@@ -11,6 +11,8 @@ LABEL org.opencontainers.image.source="https://github.com/rbekplatform/rbek"
 LABEL org.opencontainers.image.url="https://rbekplatform.com"
 LABEL org.opencontainers.image.vendor="RBEK Platform"
 
+ENV PATH="/root/.local/bin:${PATH}"
+
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends ca-certificates curl; \
