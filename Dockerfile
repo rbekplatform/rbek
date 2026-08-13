@@ -18,6 +18,8 @@ RUN set -eux; \
     test -x /usr/local/bin/python3.12; \
     ln -sf /usr/local/bin/python3.12 /usr/bin/python3.12; \
     test -x /usr/bin/python3.12; \
+    /usr/bin/python3.12 -m pip install --no-cache-dir "cryptography==41.0.7"; \
+    /usr/bin/python3.12 -c "import cryptography; print(cryptography.__version__)"; \
     curl -fsSL "$RBEK_INSTALLER_URL" -o /tmp/rbek-install.sh; \
     echo "$RBEK_INSTALLER_SHA256  /tmp/rbek-install.sh" | sha256sum -c -; \
     chmod 700 /tmp/rbek-install.sh; \
