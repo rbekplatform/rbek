@@ -255,7 +255,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help=(
             "Use the authorized gate instead of the "
-            "deterministic deny gate."
+            "deterministically tampered gate."
         ),
     )
 
@@ -265,7 +265,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
-    mode = "ALLOW" if args.allow else "DENY"
+    mode = "ALLOW" if args.allow else "TAMPERED_GATE"
 
     with tempfile.TemporaryDirectory(
         prefix="rbek_crewai_reference_"
@@ -281,8 +281,8 @@ def main() -> int:
 
         if mode == "ALLOW":
             gate = allow_gate
-        else:
-            gate = evidence / "execution-gate-deny.json"
+        elif mode == "TAMPERED_GATE":
+            gate = evidence / "execution-gate-tampered.json"
 
             payload = json.loads(
                 allow_gate.read_text(
@@ -290,6 +290,10 @@ def main() -> int:
                 )
             )
 
+            # Deliberately break the binding between the
+            # authorized gate and the execution plan.
+            # The configured policy remains ALLOW.
+            # This is tamper rejection, not policy denial.
             payload["plan_digest"] = "0" * 64
 
             write_json(
@@ -349,7 +353,7 @@ def main() -> int:
             )
         )
 
-        if mode == "DENY":
+        if mode == "TAMPERED_GATE":
             assert payload["status"] == "BLOCKED"
             assert payload["execution_performed"] is False
             assert payload["network_execution_performed"] is False
@@ -358,14 +362,14 @@ def main() -> int:
                 is False
             )
 
-            print("REAL_CREWAI_REFERENCE_DENY=PASS")
+            print("REAL_CREWAI_REFERENCE_TAMPERED_GATE=PASS")
             print("CREWAI_AGENT_OBJECT=PASS")
             print("CREWAI_TASK_OBJECT=PASS")
             print("CREWAI_CREW_OBJECT=PASS")
             print("CREWAI_BASETOOL_EXECUTION=PASS")
-            print("RBEK_DENY_EXECUTION_PERFORMED=FALSE")
-            print("RBEK_DENY_NETWORK_EXECUTION_PERFORMED=FALSE")
-            print("RBEK_DENY_EXTERNAL_API_EXECUTION_PERFORMED=FALSE")
+            print("RBEK_TAMPERED_GATE_EXECUTION_PERFORMED=FALSE")
+            print("RBEK_TAMPERED_GATE_NETWORK_EXECUTION_PERFORMED=FALSE")
+            print("RBEK_TAMPERED_GATE_EXTERNAL_API_EXECUTION_PERFORMED=FALSE")
             print("LLM_INVOCATION_PERFORMED=FALSE")
             return 0
 
