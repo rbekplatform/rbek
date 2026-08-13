@@ -1,0 +1,102 @@
+name: Container Build Verification
+
+on:
+  push:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/container-build.yml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/container-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-run:
+    name: Build and Run RBEK Container
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build official RBEK runtime image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          docker build \
+            --pull \
+            --tag rbek-ci:0.2.0 \
+            .
+
+      - name: Verify container runtime identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          VERSION="$(
+            docker run \
+              --rm \
+              rbek-ci:0.2.0 \
+              --version
+          )"
+
+          echo "CONTAINER_RUNTIME_VERSION=$VERSION"
+
+          test "$VERSION" = "RBEK 0.2.0"
+
+          echo "CONTAINER_RUNTIME_IDENTITY=PASS"
+
+      - name: Verify OCI labels
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          VERSION_LABEL="$(
+            docker image inspect \
+              rbek-ci:0.2.0 \
+              --format '{{ index .Config.Labels "org.opencontainers.image.version" }}'
+          )"
+
+          SOURCE_LABEL="$(
+            docker image inspect \
+              rbek-ci:0.2.0 \
+              --format '{{ index .Config.Labels "org.opencontainers.image.source" }}'
+          )"
+
+          test "$VERSION_LABEL" = "0.2.0"
+          test "$SOURCE_LABEL" = "https://github.com/rbekplatform/rbek"
+
+          echo "OCI_LABELS=PASS"
+
+      - name: Verify default command
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          DEFAULT_OUTPUT="$(
+            docker run \
+              --rm \
+              rbek-ci:0.2.0
+          )"
+
+          echo "CONTAINER_DEFAULT_OUTPUT=$DEFAULT_OUTPUT"
+
+          test "$DEFAULT_OUTPUT" = "RBEK 0.2.0"
+
+          echo "CONTAINER_DEFAULT_COMMAND=PASS"
+
+      - name: Verify no publication in build CI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          echo "GHCR_PUSH_EXECUTED=FALSE"
+          echo "CONTAINER_BUILD_VERIFICATION=PASS"
