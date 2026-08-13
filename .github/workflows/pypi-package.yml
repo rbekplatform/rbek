@@ -1,0 +1,221 @@
+name: PyPI Package Build
+
+on:
+  push:
+    paths:
+      - "pyproject.toml"
+      - "src/rbek_pypi/**"
+      - "tests/pypi/**"
+      - ".github/workflows/pypi-package.yml"
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "src/rbek_pypi/**"
+      - "tests/pypi/**"
+      - ".github/workflows/pypi-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Compile public bootstrap
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python -m py_compile \
+            src/rbek_pypi/__init__.py \
+            src/rbek_pypi/cli.py \
+            tests/pypi/test_bootstrap.py
+
+      - name: Run bootstrap unit tests
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          set -Eeuo pipefail
+
+          python -m unittest discover \
+            -s tests/pypi \
+            -p 'test_*.py' \
+            -v
+
+  package:
+    name: Build and Verify Distribution
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install packaging build tool
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python -m pip install \
+            --disable-pip-version-check \
+            "build>=1,<2"
+
+      - name: Build wheel and sdist
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python -m build
+
+          test -f dist/rbek-0.2.0-py3-none-any.whl
+          test -f dist/rbek-0.2.0.tar.gz
+
+          sha256sum dist/*
+
+      - name: Audit wheel content and metadata
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import email
+          import pathlib
+          import zipfile
+
+          wheel = pathlib.Path("dist/rbek-0.2.0-py3-none-any.whl")
+
+          with zipfile.ZipFile(wheel) as archive:
+              names = sorted(archive.namelist())
+
+              required = {
+                  "rbek_pypi/__init__.py",
+                  "rbek_pypi/cli.py",
+              }
+
+              missing = sorted(required.difference(names))
+
+              if missing:
+                  raise SystemExit(
+                      "REQUIRED_PUBLIC_BOOTSTRAP_CONTENT_MISSING="
+                      + ",".join(missing)
+                  )
+
+              forbidden = (
+                  "rbek/cli/",
+                  "rbek/email/",
+                  "private key",
+                  "secret",
+              )
+
+              bad = [
+                  name
+                  for name in names
+                  if any(token in name.lower() for token in forbidden)
+              ]
+
+              if bad:
+                  raise SystemExit(
+                      "PRIVATE_RUNTIME_CONTENT_DETECTED="
+                      + ",".join(bad)
+                  )
+
+              metadata_name = next(
+                  name
+                  for name in names
+                  if name.endswith(".dist-info/METADATA")
+              )
+
+              entry_name = next(
+                  name
+                  for name in names
+                  if name.endswith(".dist-info/entry_points.txt")
+              )
+
+              metadata = email.message_from_bytes(
+                  archive.read(metadata_name)
+              )
+
+              entry_points = archive.read(entry_name).decode("utf-8")
+
+          assert metadata["Name"] == "rbek"
+          assert metadata["Version"] == "0.2.0"
+          assert "rbek = rbek_pypi.cli:main" in entry_points
+
+          print("PRIVATE_RUNTIME_IN_WHEEL=FALSE")
+          print("PYPI_METADATA_CONTRACT=PASS")
+          print("CONSOLE_SCRIPT_RBEK=PASS")
+          PY
+
+      - name: Install wheel in clean virtual environment
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python -m venv "$RUNNER_TEMP/rbek-pypi-venv"
+
+          "$RUNNER_TEMP/rbek-pypi-venv/bin/python" \
+            -m pip install \
+            --disable-pip-version-check \
+            --no-deps \
+            dist/rbek-0.2.0-py3-none-any.whl
+
+          test "$(
+            "$RUNNER_TEMP/rbek-pypi-venv/bin/python" - <<'PY'
+          import rbek_pypi
+          print(rbek_pypi.__version__)
+          PY
+          )" = "0.2.0"
+
+          echo "CLEAN_WHEEL_INSTALL=PASS"
+
+      - name: Verify real runtime delegation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          VENV="$RUNNER_TEMP/rbek-pypi-venv"
+
+          VERSION="$("$VENV/bin/rbek" --version)"
+
+          echo "DELEGATED_RUNTIME_VERSION=$VERSION"
+
+          test "$VERSION" = "RBEK 0.2.0"
+
+          echo "REAL_RUNTIME_DELEGATION=PASS"
+
+      - name: Upload PyPI distribution artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: rbek-pypi-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
