@@ -40,6 +40,23 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(result, "/fake/rbek-cli")
         validate.assert_called_once_with("/fake/rbek-cli")
 
+    def test_installer_output_is_routed_to_stderr(self) -> None:
+        with (
+            mock.patch.object(cli, "_download_verified", return_value=b"#!/bin/sh\nexit 0\n"),
+            mock.patch.object(cli, "_runtime_path", return_value="/installed/rbek-cli"),
+            mock.patch.object(cli, "_validate_runtime") as validate,
+            mock.patch.object(cli.subprocess, "run") as run,
+        ):
+            result = cli._install_runtime()
+
+        self.assertEqual(result, "/installed/rbek-cli")
+        validate.assert_called_once_with("/installed/rbek-cli")
+        args, kwargs = run.call_args
+        self.assertEqual(args[0][0], "bash")
+        self.assertTrue(kwargs["check"])
+        self.assertIs(kwargs["stdout"], sys.stderr)
+        self.assertIs(kwargs["stderr"], sys.stderr)
+
     def test_missing_runtime_uses_installer(self) -> None:
         with (
             mock.patch.object(

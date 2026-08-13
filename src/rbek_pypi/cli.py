@@ -91,6 +91,8 @@ def _install_runtime() -> str:
         subprocess.run(
             ["bash", str(path)],
             check=True,
+            stdout=sys.stderr,
+            stderr=sys.stderr,
         )
 
     runtime = _runtime_path()
