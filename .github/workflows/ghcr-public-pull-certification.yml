@@ -1,0 +1,193 @@
+name: GHCR Public Pull Certification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/rbekplatform/rbek
+  VERSION: 0.2.0
+
+jobs:
+  certify:
+    name: Certify Anonymous GHCR Pull
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Create isolated anonymous Docker configuration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          ANON_DOCKER_CONFIG="$RUNNER_TEMP/rbek-anonymous-docker-config"
+
+          rm -rf "$ANON_DOCKER_CONFIG"
+          mkdir -p "$ANON_DOCKER_CONFIG"
+
+          printf '{}\n' > "$ANON_DOCKER_CONFIG/config.json"
+
+          echo "DOCKER_CONFIG=$ANON_DOCKER_CONFIG" >> "$GITHUB_ENV"
+
+          echo "DOCKER_CONFIG_ISOLATED=PASS"
+          echo "DOCKER_LOGIN_EXECUTED=FALSE"
+          echo "GHCR_CREDENTIALS_PRESENT=FALSE"
+
+      - name: Certify anonymous version pull
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          docker pull "${IMAGE}:${VERSION}"
+
+          echo "GHCR_VERSION_TAG_ANONYMOUS_PULL=PASS"
+
+      - name: Certify anonymous stable pull
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          docker pull "${IMAGE}:stable"
+
+          echo "GHCR_STABLE_TAG_ANONYMOUS_PULL=PASS"
+
+      - name: Certify runtime identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          VERSION_OUTPUT="$(
+            docker run \
+              --rm \
+              "${IMAGE}:${VERSION}" \
+              --version
+          )"
+
+          STABLE_OUTPUT="$(
+            docker run \
+              --rm \
+              "${IMAGE}:stable" \
+              --version
+          )"
+
+          echo "GHCR_VERSION_RUNTIME_OUTPUT=$VERSION_OUTPUT"
+          echo "GHCR_STABLE_RUNTIME_OUTPUT=$STABLE_OUTPUT"
+
+          test "$VERSION_OUTPUT" = "RBEK 0.2.0"
+          test "$STABLE_OUTPUT" = "RBEK 0.2.0"
+
+          echo "GHCR_RUNTIME_IDENTITY=PASS"
+
+      - name: Certify tag digest identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          VERSION_REPODIGEST="$(
+            docker image inspect \
+              "${IMAGE}:${VERSION}" \
+              --format '{{ index .RepoDigests 0 }}'
+          )"
+
+          STABLE_REPODIGEST="$(
+            docker image inspect \
+              "${IMAGE}:stable" \
+              --format '{{ index .RepoDigests 0 }}'
+          )"
+
+          VERSION_DIGEST="${VERSION_REPODIGEST##*@}"
+          STABLE_DIGEST="${STABLE_REPODIGEST##*@}"
+
+          echo "GHCR_VERSION_REPODIGEST=$VERSION_REPODIGEST"
+          echo "GHCR_STABLE_REPODIGEST=$STABLE_REPODIGEST"
+          echo "GHCR_VERSION_DIGEST=$VERSION_DIGEST"
+          echo "GHCR_STABLE_DIGEST=$STABLE_DIGEST"
+
+          case "$VERSION_DIGEST" in
+            sha256:*) ;;
+            *)
+              echo "INVALID_VERSION_DIGEST=$VERSION_DIGEST"
+              exit 1
+              ;;
+          esac
+
+          test "$VERSION_DIGEST" = "$STABLE_DIGEST"
+
+          echo "GHCR_TAG_DIGEST_IDENTITY=PASS"
+
+      - name: Certify OCI labels
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          OCI_VERSION="$(
+            docker image inspect \
+              "${IMAGE}:${VERSION}" \
+              --format '{{ index .Config.Labels "org.opencontainers.image.version" }}'
+          )"
+
+          OCI_SOURCE="$(
+            docker image inspect \
+              "${IMAGE}:${VERSION}" \
+              --format '{{ index .Config.Labels "org.opencontainers.image.source" }}'
+          )"
+
+          OCI_DESCRIPTION="$(
+            docker image inspect \
+              "${IMAGE}:${VERSION}" \
+              --format '{{ index .Config.Labels "org.opencontainers.image.description" }}'
+          )"
+
+          echo "OCI_VERSION=$OCI_VERSION"
+          echo "OCI_SOURCE=$OCI_SOURCE"
+          echo "OCI_DESCRIPTION=$OCI_DESCRIPTION"
+
+          test "$OCI_VERSION" = "0.2.0"
+          test "$OCI_SOURCE" = "https://github.com/rbekplatform/rbek"
+          test "$OCI_DESCRIPTION" = "RBEK governed execution runtime"
+
+          echo "OCI_LABELS=PASS"
+
+      - name: Certify latest tag is absent
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          set +e
+          docker pull "${IMAGE}:latest" \
+            >"$RUNNER_TEMP/rbek-latest-pull.log" \
+            2>&1
+          RC=$?
+          set -e
+
+          echo "GHCR_LATEST_PULL_RC=$RC"
+
+          if [ "$RC" -eq 0 ]; then
+            cat "$RUNNER_TEMP/rbek-latest-pull.log"
+            echo "GHCR_LATEST_TAG_UNEXPECTEDLY_EXISTS"
+            exit 1
+          fi
+
+          echo "GHCR_LATEST_TAG=ABSENT"
+
+      - name: Certification result
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          echo "RBEK_DISTRIBUTION_002D1=PASS"
+          echo "GHCR_PUBLIC_VISIBILITY=PASS"
+          echo "ANONYMOUS_PULL=PASS"
+          echo "GHCR_IMAGE=${IMAGE}"
+          echo "GHCR_VERSION_TAG=${VERSION}"
+          echo "GHCR_STABLE_TAG=stable"
+          echo "GHCR_LATEST_TAG=ABSENT"
+          echo "GHCR_RUNTIME_VERSION=RBEK 0.2.0"
+          echo "DOCKER_LOGIN_EXECUTED=FALSE"
+          echo "GHCR_TOKEN_USED=FALSE"
+          echo "RBEK_DISTRIBUTION_002=CLOSED"
