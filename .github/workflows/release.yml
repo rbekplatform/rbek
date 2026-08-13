@@ -1,0 +1,170 @@
+name: Publish RBEK to PyPI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build release distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Run public bootstrap tests
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          set -Eeuo pipefail
+
+          python -m py_compile \
+            src/rbek_pypi/__init__.py \
+            src/rbek_pypi/cli.py \
+            tests/pypi/test_bootstrap.py
+
+          python -m unittest discover \
+            -s tests/pypi \
+            -p 'test_*.py' \
+            -v
+
+      - name: Install build tool
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install \
+            --disable-pip-version-check \
+            "build>=1,<2"
+
+      - name: Build distributions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python -m build
+
+          test -f dist/rbek-0.2.0-py3-none-any.whl
+          test -f dist/rbek-0.2.0.tar.gz
+
+          sha256sum dist/*
+
+      - name: Audit release distributions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import email
+          import pathlib
+          import tarfile
+          import zipfile
+
+          wheel = pathlib.Path("dist/rbek-0.2.0-py3-none-any.whl")
+          sdist = pathlib.Path("dist/rbek-0.2.0.tar.gz")
+
+          with zipfile.ZipFile(wheel) as archive:
+              names = sorted(archive.namelist())
+
+              required = {
+                  "rbek_pypi/__init__.py",
+                  "rbek_pypi/cli.py",
+              }
+
+              missing = sorted(required.difference(names))
+              if missing:
+                  raise SystemExit(
+                      "REQUIRED_WHEEL_CONTENT_MISSING="
+                      + ",".join(missing)
+                  )
+
+              forbidden = (
+                  "rbek/cli/",
+                  "rbek/email/",
+                  "private key",
+                  "secret",
+              )
+
+              bad = [
+                  name
+                  for name in names
+                  if any(token in name.lower() for token in forbidden)
+              ]
+
+              if bad:
+                  raise SystemExit(
+                      "PRIVATE_RUNTIME_CONTENT_DETECTED="
+                      + ",".join(bad)
+                  )
+
+              metadata_name = next(
+                  name
+                  for name in names
+                  if name.endswith(".dist-info/METADATA")
+              )
+
+              metadata = email.message_from_bytes(
+                  archive.read(metadata_name)
+              )
+
+              assert metadata["Name"] == "rbek"
+              assert metadata["Version"] == "0.2.0"
+
+          with tarfile.open(sdist, "r:gz") as archive:
+              sdist_names = archive.getnames()
+
+          for token in (
+              "rbek/cli/",
+              "rbek/email/",
+          ):
+              if any(token in name for name in sdist_names):
+                  raise SystemExit(
+                      "FORBIDDEN_SDIST_CONTENT_DETECTED="
+                      + token
+                  )
+
+          print("RELEASE_DISTRIBUTION_AUDIT=PASS")
+          print("PRIVATE_RUNTIME_IN_DISTRIBUTIONS=FALSE")
+          PY
+
+      - name: Upload release distributions
+        uses: actions/upload-artifact@v6
+        with:
+          name: rbek-release-dists
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/rbek
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download release distributions
+        uses: actions/download-artifact@v6
+        with:
+          name: rbek-release-dists
+          path: dist/
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
