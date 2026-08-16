@@ -1,66 +1,117 @@
-# LangGraph + RBEK governed tool
+# LangGraph + RBEK
 
-Use LangGraph for orchestration. Use RBEK for the execution boundary.
+Keep LangGraph for orchestration. Put RBEK at the execution boundary.
+
+## 60-second SDK quickstart
+
+Install the framework and the published RBEK Python SDK:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+The example is built against:
 
 ```text
-LangGraph
-   |
-   v
-ToolNode
-   |
-   v
-RBEK governed tool
-   |
-   v
-RBEK policy / gate
-   |          |
- DENY       ALLOW
-   |          |
- no action    external action
-              |
-              v
-          evidence
+rbek==0.3.0a3
 ```
 
-## Run the deterministic governance proof
+Run the default local business-policy proof:
 
 ```bash
-./demo.sh
+python quickstart.py
 ```
 
-The default proof uses a real LangGraph `StateGraph` and real `ToolNode`.
-It proves the DENY path without performing the external Open-Meteo action.
+The rule is intentionally readable:
 
-## Run the real external action
-
-```bash
-./demo.sh --live
+```python
+Policy.allow_if(
+    "latitude >= -90 and latitude <= 90 "
+    "and longitude >= -180 and longitude <= 180"
+)
 ```
 
-The live path uses the same LangGraph graph, same tool and same input, then
-executes the authorized `weather.current` action through RBEK and the promoted
-Open-Meteo adapter.
+The default input uses latitude `120.0`, so `Policy.evaluate` returns `DENIED`
+without performing provider execution.
 
-LangGraph does not call Open-Meteo directly. The tool invokes the public RBEK
-CLI execution boundary.
+Expected shape:
 
-## Install RBEK
+```text
+local_policy_status: DENIED
+local_policy_executed: False
+```
+
+`Policy.evaluate` is a local business-policy pre-check. It does not perform
+provider execution and it should not be described as equivalent to the
+canonical RBEK runtime gate.
+
+## Real governed provider execution
+
+Real governed provider execution requires the RBEK CLI:
 
 ```bash
 curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
 ```
 
-Expected runtime:
+Then run:
 
-```text
-RBEK 0.2.0
+```bash
+python quickstart.py --live
 ```
+
+The live path uses:
+
+```python
+CLIExecutionBinding(
+    provider="open-meteo",
+    capability="weather.current",
+)
+```
+
+and crosses the RBEK execution boundary through:
+
+```python
+GovernedAction.execute(...)
+```
+
+LangGraph does not call Open-Meteo directly.
+
+Your framework decides what to do. RBEK decides what may execute.
 
 ## Architecture
 
-Your framework decides what to do.
+```text
+LangGraph
+   |
+   v
+GovernedAction
+   |
+   +--> Policy.evaluate      local business-policy check
+   |
+   +--> CLIExecutionBinding
+            |
+            v
+        RBEK CLI
+            |
+            v
+     governed execution
+```
 
-RBEK decides what may execute.
+## Advanced governance proof
 
-This example is a reference integration. It does not publish RBEK core source
-and does not claim a public RBEK Python SDK compatibility contract.
+The original lower-level CLI reference remains available unchanged:
+
+```bash
+./demo.sh
+```
+
+For the real external path:
+
+```bash
+./demo.sh --live
+```
+
+That advanced example exercises lower-level RBEK project, plan, gate and
+evidence behavior and remains useful for studying the governance boundary.
+
+The Python SDK quickstart is now the recommended first developer entry point.

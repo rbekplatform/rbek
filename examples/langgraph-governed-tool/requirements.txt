@@ -1,1 +1,2 @@
 langgraph==1.2.9
+rbek==0.3.0a3

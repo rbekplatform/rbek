@@ -1,110 +1,121 @@
-# CrewAI + RBEK governed tool
+# CrewAI + RBEK
 
-Keep CrewAI for agent orchestration. Put RBEK at the external execution boundary.
+Keep CrewAI for agent orchestration. Put RBEK at the external execution
+boundary.
 
-```text
-CrewAI Agent / Task / Crew
-          |
-          v
-       BaseTool
-          |
-          v
-RBEKGovernedWeatherTool
-          |
-          v
-rbek-cli execution external-run
-          |
-  TAMPERED_GATE / ALLOW
-```
+## 60-second SDK quickstart
 
-## Run the deterministic governance proof
+Install CrewAI and the published RBEK Python SDK:
 
 ```bash
-./run.sh
+python -m pip install -r requirements.txt
 ```
 
-The default path creates real CrewAI `Agent`, `Task`, `Crew`, and `BaseTool`
-objects, then invokes the tool using a deliberately tampered RBEK execution
-gate.
-
-The gate was originally authorized for the execution plan. The proof changes
-its `plan_digest`, breaking the authorization binding.
-
-RBEK must reject that artifact before any external provider action is
-performed.
-
-Expected result:
+The example is built against:
 
 ```text
-mode: TAMPERED_GATE
-status: BLOCKED
-execution_performed: false
-network_execution_performed: false
-external_api_execution_performed: false
+rbek==0.3.0a3
 ```
 
-This proves execution-gate integrity enforcement.
-
-It is intentionally **not described as a policy DENY**.
-
-The policy used to create the execution plan is `ALLOW`.
-
-A policy denial and an invalid or tampered authorization artifact are
-different governance cases and should be demonstrated separately.
-
-## Run the real governed external action
+Run the default local business-policy proof:
 
 ```bash
-./run.sh --allow
+python quickstart.py
 ```
 
-The `ALLOW` path uses the same CrewAI integration, same governed tool and same
-input, but supplies the valid authorized gate.
+The business rule is visible before the governance plumbing:
 
-RBEK then executes the `weather.current` action through the promoted
-Open-Meteo adapter.
+```python
+Policy.allow_if(
+    "latitude >= -90 and latitude <= 90 "
+    "and longitude >= -180 and longitude <= 180"
+)
+```
 
-CrewAI does not call Open-Meteo directly.
+The quickstart wraps the governed action in a normal CrewAI `BaseTool`.
 
-The tool invokes the public RBEK CLI execution boundary.
+The default input uses latitude `120.0`, so `Policy.evaluate` returns `DENIED`
+without performing provider execution.
 
-## Install RBEK
+`Policy.evaluate` is a local business-policy pre-check. It does not perform
+provider execution and it should not be described as equivalent to the
+canonical RBEK runtime gate.
+
+## Real governed provider execution
+
+Real governed provider execution requires the RBEK CLI:
 
 ```bash
 curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
 ```
 
-Expected runtime:
+Then run:
 
-```text
-RBEK 0.2.0
+```bash
+python quickstart.py --live
 ```
+
+The live path uses:
+
+```python
+CLIExecutionBinding(
+    provider="open-meteo",
+    capability="weather.current",
+)
+```
+
+and the RBEK action crosses the execution boundary through:
+
+```python
+GovernedAction.execute(...)
+```
+
+CrewAI does not call Open-Meteo directly.
+
+`tool.run(...)` in `quickstart.py` is CrewAI's `BaseTool.run` method. It is
+not an RBEK SDK `.run()` method. The RBEK SDK action uses only
+`evaluate()` and `execute()`.
+
+Your framework decides what to do. RBEK decides what may execute.
 
 ## Architecture
 
-Your framework decides what to do.
+```text
+CrewAI BaseTool
+      |
+      v
+GovernedAction
+      |
+      +--> Policy.evaluate      local business-policy check
+      |
+      +--> CLIExecutionBinding
+               |
+               v
+           RBEK CLI
+               |
+               v
+        governed execution
+```
 
-RBEK decides what may execute.
+## Advanced governance proof
 
-More precisely:
+The original lower-level CrewAI governance proof remains available unchanged:
 
-> The agent proposes an action. RBEK controls whether that action may cross
-> the external execution boundary.
+```bash
+./run.sh
+```
 
-This is a reference integration.
+It creates real CrewAI `Agent`, `Task`, `Crew`, and `BaseTool` objects and
+demonstrates execution-gate integrity with the `TAMPERED_GATE` case.
 
-It does not publish RBEK core source and does not claim a public RBEK Python
-SDK compatibility contract.
+Run its authorized external path with:
 
-## Governance cases
+```bash
+./run.sh --allow
+```
 
-| Case | Expected result | External action |
-|---|---|---|
-| `TAMPERED_GATE` | `BLOCKED` | No |
-| `ALLOW` | `PASS` | Yes |
+That advanced proof intentionally works at a lower level than the Python SDK
+quickstart and remains useful for studying gate integrity, execution evidence
+and the CLI boundary.
 
-A true `POLICY_DENY` proof should be implemented separately against explicit
-public CLI policy-rejection behavior.
-
-It must not be represented by altering the digest of an already authorized
-gate.
+The Python SDK quickstart is now the recommended first developer entry point.
