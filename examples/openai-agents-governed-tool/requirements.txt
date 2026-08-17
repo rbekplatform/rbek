@@ -1,0 +1,2 @@
+openai-agents==0.21.1
+rbek==0.3.0a3
