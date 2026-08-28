@@ -188,3 +188,34 @@ The complete runtime source is not published in this repository.
 ## Security
 
 See [SECURITY.md](SECURITY.md).
+
+## Refund governance example
+
+An AI agent may propose a refund. RBEK determines whether the proposal may
+cross the execution boundary.
+
+The runnable example covers three cases:
+
+- **EUR 12,500** -> `DENY` -> no controlled execution.
+- **EUR 2,000** -> `ALLOW` -> eligible for RBEK governed local execution.
+- **Manipulative EUR 50,000 prompt** -> `DENY` -> no controlled execution.
+
+Policy-only:
+
+```bash
+python3 examples/refund-governance/run.py
+```
+
+Explicit governed local execution for the allowed case:
+
+```bash
+python3 examples/refund-governance/run.py --execute
+```
+
+The example uses a bounded local `customer-transform / local.transform`
+execution target. It does not contact Stripe, move money, or claim real
+financial settlement.
+
+**AI can propose. RBEK decides what can execute.**
+
+See [`examples/refund-governance/`](examples/refund-governance/).

@@ -1,0 +1,7 @@
+# No additional Python packages are required by this example.
+#
+# The RBEK CLI must already be installed and available as:
+#
+#   rbek-cli
+#
+# See the repository installation documentation.
