@@ -48,7 +48,7 @@ main() {
 
     local VERSION
     VERSION="$("$CLI" --version)"
-    if [ "$VERSION" != "RBEK 0.2.0" ]; then
+    if [ "$VERSION" != "RBEK 0.2.1" ]; then
         echo "DEMO_STATUS=BLOCKED"
         echo "REASON=RBEK_CLI_VERSION_MISMATCH"
         echo "ACTUAL=$VERSION"

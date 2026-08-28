@@ -36,7 +36,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
-          test "$(rbek-cli --version)" = "RBEK 0.2.0"
+          test "$(rbek-cli --version)" = "RBEK 0.2.1"
 
       - name: Static certification
         shell: bash
