@@ -5,7 +5,7 @@ main() {
     local CLI="${RBEK_CLI:-rbek-cli}"
     local PY="${RBEK_PYTHON:-python3}"
     local RAW="https://raw.githubusercontent.com/rbekplatform/rbek/main/examples/refund-governance/run.py"
-    local WORK
+    WORK=""
     local RUNNER=""
     local SOURCE="${BASH_SOURCE[0]:-}"
 
