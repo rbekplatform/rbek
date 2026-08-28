@@ -1,0 +1,74 @@
+name: Refund Governance Verified
+
+on:
+  push:
+    paths:
+      - "README.md"
+      - "examples/refund-governance/**"
+      - ".github/workflows/refund-governance.yml"
+  pull_request:
+    paths:
+      - "README.md"
+      - "examples/refund-governance/**"
+      - ".github/workflows/refund-governance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refund-governance:
+    name: Refund Execution Governance Verified
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install public RBEK CLI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -fsSL https://releases.rbekplatform.com/cli/stable/install.sh | bash
+          test "$(rbek-cli --version)" = "RBEK 0.2.0"
+
+      - name: Static certification
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m py_compile examples/refund-governance/run.py examples/refund-governance/test_refund_governance.py
+          bash -n examples/refund-governance/demo.sh
+
+      - name: Run refund unit tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m unittest -q examples/refund-governance/test_refund_governance.py
+
+      - name: Run public refund governance demo
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          DEMO="$GITHUB_WORKSPACE/examples/refund-governance/demo.sh"
+          RUN_DIR="$RUNNER_TEMP/rbek-refund-governance"
+          mkdir -p "$RUN_DIR"
+          (
+            cd "$RUN_DIR"
+            "$DEMO"
+          ) | tee "$RUN_DIR/output.log"
+
+          grep -Fq "RBEK_REFUND_GOVERNANCE_DEMO=PASS" "$RUN_DIR/output.log"
+          grep -Fq "EUR 12,500 refund ............... DENIED" "$RUN_DIR/output.log"
+          grep -Fq "EUR 2,000 refund ................ ALLOWED" "$RUN_DIR/output.log"
+          grep -Fq "Governed execution .............. YES" "$RUN_DIR/output.log"
+          grep -Fq "Execution evidence .............. VERIFIED" "$RUN_DIR/output.log"
+          grep -Fq "EUR 50,000 manipulative prompt .. DENIED" "$RUN_DIR/output.log"
+          grep -Fq "Prompt granted authority ........ NO" "$RUN_DIR/output.log"
+          grep -Fq "POSITIVE_EXECUTION_TRUTH=PASS" "$RUN_DIR/output.log"
+          grep -Fq "ZERO_EXTERNAL_EFFECT_TRUTH=PASS" "$RUN_DIR/output.log"

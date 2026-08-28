@@ -1,61 +1,82 @@
 # RBEK
 
-**Governed execution for AI agents, workflows and software.**
+## Execution authority for AI agents.
 
-[![Deterministic Execution Verified](https://github.com/rbekplatform/rbek/actions/workflows/real-governed-agent.yml/badge.svg)](https://github.com/rbekplatform/rbek/actions/workflows/real-governed-agent.yml)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/rbekplatform/rbek?quickstart=1)
+**AI can propose. RBEK decides what can execute.**
 
-RBEK separates what an agent **wants to do** from what it is **authorized to execute**.
+[![Refund Governance Verified](https://github.com/rbekplatform/rbek/actions/workflows/refund-governance.yml/badge.svg)](https://github.com/rbekplatform/rbek/actions/workflows/refund-governance.yml)
 
-## See RBEK govern an action in 10 seconds
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/rbekplatform/rbek/main/examples/real-governed-agent/demo.sh | bash
-```
-
-**No API key. No prior RBEK installation. No configuration.**
-
-The demo installs and validates the public RBEK CLI when needed, then runs an
-offline governed proof:
+An AI agent proposes three refunds:
 
 ```text
-Agent requests an action
-        |
-        +-- unauthorized -> DENY  -> executed: NO
-        |
-        +-- authorized   -> ALLOW -> governed dry-run -> AUTHORIZED
-                                                |
-                                                +-- evidence
+EUR 12,500 ........ DENY   executed: NO
+EUR 2,000 ......... ALLOW  executed: YES
+EUR 50,000 ........ DENY   executed: NO
 ```
 
-What you see in the terminal:
+The EUR 50,000 case includes a manipulative prompt attempting to override the policy. The prompt can propose an action; it does not grant execution authority.
 
-```text
-Unauthorized action ............ DENIED
-Denied action executed ......... NO
-Authorized action .............. ALLOWED
-Governed dry-run ............... PASS
-Gate authorization ............. AUTHORIZED
-RBEK policy enforcement ........ REAL
-RBEK evidence .................. REAL
-```
-
-The default proof performs **no external network action**. Policy enforcement
-and evidence generation are real RBEK behavior.
-
-The public GitHub Actions workflow executes the proof twice and verifies that
-the deterministic evidence summary is identical across both runs.
-
-### Prefer zero-install in the browser?
-
-Use **Open in GitHub Codespaces** above, then run:
+### See RBEK decide in 10 seconds
 
 ```bash
-cd examples/real-governed-agent
-./demo.sh
+curl -fsSL https://raw.githubusercontent.com/rbekplatform/rbek/main/examples/refund-governance/demo.sh | bash
 ```
+
+**No API key. No prior RBEK installation. No payment processor.**
+
+The demo installs and validates the public RBEK CLI when needed and applies a deterministic EUR 5,000 refund limit.
+
+```text
+AI / agent proposal
+        |
+        v
+deterministic refund policy
+        |
+   +----+----+
+   |         |
+ DENY      ALLOW
+   |         |
+executed    RBEK governed
+  NO        local execution
+                |
+                v
+           executed YES
+           + evidence
+```
+
+What the terminal proves:
+
+```text
+EUR 12,500 refund ............... DENIED
+Denied refund executed .......... NO
+
+EUR 2,000 refund ................ ALLOWED
+Governed execution .............. YES
+Execution evidence .............. VERIFIED
+
+EUR 50,000 manipulative prompt .. DENIED
+Prompt granted authority ........ NO
+Denied refund executed .......... NO
+
+Network action .................. NO
+Database action ................. NO
+External API action ............. NO
+Payment processor ............... NO
+
+RBEK_REFUND_GOVERNANCE_DEMO=PASS
+```
+
+The allowed case uses the bounded `customer-transform / local.transform` target.
+
+Positive execution is accepted only when RBEK reports execution, receipt, certification and allowlist evidence.
+
+The demo does **not** move money, contact Stripe, or contact a payment processor.
+
+[Read the refund governance example →](examples/refund-governance/README.md)
 
 ### Want the real AI + Internet path?
+
+The repository also includes a governed-agent example with real model inference and a real Open-Meteo external action:
 
 ```bash
 cd examples/real-governed-agent
@@ -63,8 +84,6 @@ export OPENAI_API_KEY="your-key"
 ./demo.sh --live
 ```
 
-Live mode performs real model inference and a real Open-Meteo external action
-through the RBEK governed execution boundary.
 
 ## Why RBEK?
 
