@@ -124,7 +124,7 @@ rbek-cli --version
 Current public stable:
 
 ```text
-RBEK 0.2.0
+RBEK 0.2.1
 ```
 
 ## 5-minute quickstart
